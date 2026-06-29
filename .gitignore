@@ -1,3 +1,8 @@
+# TP final: dataset (downloaded by 01_eda_limpieza.ipynb) and generated artifacts
+dataset/
+data/processed/
+outputs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

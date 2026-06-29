@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TP Final ML — Estimación de precios de alquiler</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+    <style>
+      .reveal h1, .reveal h2, .reveal h3 { color: #1a1a1a; }
+      .reveal .small { font-size: 0.75em; }
+      .reveal .left { text-align: left; }
+      .reveal blockquote {
+        background: #f4f4f4;
+        border-left: 5px solid #2c3e50;
+        padding: 0.5em 1em;
+        font-style: italic;
+      }
+      .reveal img {
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-height: 520px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+
+        <!-- SLIDE 1: Portada -->
+        <section>
+          <h2>Estimación de precios de alquiler</h2>
+          <h4>para propietarios independientes</h4>
+          <p class="small">
+            <strong>Aprendizaje Automático — 2026 Q1</strong><br>
+            Trabajo Práctico Final — Entrega 1
+          </p>
+          <p class="small">
+            Dataset: <a href="https://archive-beta.ics.uci.edu/dataset/555/apartment+for+rent+classified">UCI Apartment for Rent Classified</a> (~100K registros)
+          </p>
+        </section>
+
+        <!-- SLIDE 2: El problema -->
+        <section>
+          <h2>El problema</h2>
+          <div class="left">
+            <p>¿Cuánto debería cobrar de alquiler por mi propiedad?</p>
+            <ul>
+              <li>Si el precio es <strong>muy alto</strong> → la propiedad se queda vacía.</li>
+              <li>Si el precio es <strong>muy bajo</strong> → se pierde ingreso mensual.</li>
+              <li>Es una decisión con alto impacto económico y poca información clara.</li>
+            </ul>
+          </div>
+          <blockquote>
+            Queremos mejorar la decisión de <strong>precio de listado inicial</strong> de una propiedad.
+          </blockquote>
+        </section>
+
+        <!-- SLIDE 3: Alternativa sin ML -->
+        <section>
+          <h2>¿Qué hacen hoy los propietarios?</h2>
+          <div class="left">
+            <ol>
+              <li><strong>Comparables manuales:</strong> buscar anuncios similares en portales. Lento y subjetivo.</li>
+              <li><strong>Inmobiliarias / agentes:</strong> cobran comisión y pueden sesgar la tasación.</li>
+              <li><strong>Estimadores genéricos:</strong> no siempre reflejan el nicho o la micro-ubicación.</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- SLIDE 4: Propuesta -->
+        <section>
+          <h2>Nuestra propuesta</h2>
+          <div class="left">
+            <p>Un modelo de Machine Learning que, a partir de características básicas de la propiedad y su ubicación, estime un <strong>precio de alquiler mensual de referencia</strong>.</p>
+            <ul>
+              <li><strong>Usuario:</strong> propietarios independientes, pequeños inversores o plataformas de alquiler.</li>
+              <li><strong>Uso:</strong> soporte de decisión, no reemplaza al propietario.</li>
+              <li><strong>Valor:</strong> reducir dependencia de intermediarios y dar un número objetivo para negociar.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- SLIDE 5: Dataset -->
+        <section>
+          <h2>El dataset</h2>
+          <div class="left">
+            <ul>
+              <li><strong>Fuente:</strong> UCI Machine Learning Repository.</li>
+              <li><strong>Tamaño:</strong> ~99.500 avisos de alquiler en EE.UU.</li>
+              <li><strong>Variables:</strong> 22 columnas.</li>
+              <li><strong>Target:</strong> <code>price</code> (precio mensual en USD).</li>
+              <li><strong>Features principales:</strong> superficie, dormitorios, baños, ciudad, estado, coordenadas, amenities, tipo de propiedad.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- SLIDE 6: Variables relevantes -->
+        <section>
+          <h2>¿Por qué estos datos sirven?</h2>
+          <div class="left small">
+            <table>
+              <thead>
+                <tr><th>Variable</th><th>Relevancia</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>price</code></td><td>Variable objetivo.</td></tr>
+                <tr><td><code>square_feet</code></td><td>Principal determinante del precio.</td></tr>
+                <tr><td><code>bedrooms / bathrooms</code></td><td>Características estructurales clave.</td></tr>
+                <tr><td><code>cityname / state / lat / lon</code></td><td>Ubicación es el factor más influyente.</td></tr>
+                <tr><td><code>amenities</code></td><td>Comodidades que agregan valor.</td></tr>
+                <tr><td><code>category</code></td><td>Tipo de propiedad.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SLIDE 7: Distribución de precios -->
+        <section>
+          <h3>Distribución del precio de alquiler</h3>
+          <img src="assets/img/01_distribucion_precios.png" alt="Distribución de precios">
+          <p class="small">La distribución es asimétrica y presenta outliers significativos.</p>
+        </section>
+
+        <!-- SLIDE 8: Outliers -->
+        <section>
+          <h2>Outliers detectados</h2>
+          <div class="left small">
+            <ul>
+              <li>Precios extremos: desde USD 100 hasta USD 52.500 mensuales.</li>
+              <li>Superficies extremas: desde 101 hasta 50.000 pies cuadrados.</li>
+              <li>Según el criterio del IQR, ~8% de los precios son outliers.</li>
+              <li>Decisión pendiente: ¿eliminar, capar o modelar por separado?</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- SLIDE 9: Precio vs superficie -->
+        <section>
+          <h3>Precio vs. Superficie</h3>
+          <img src="assets/img/02_precio_vs_superficie.png" alt="Precio vs superficie">
+          <p class="small">Correlación positiva, aunque con alta dispersión y valores extremos.</p>
+        </section>
+
+        <!-- SLIDE 10: Precio por habitaciones y baños -->
+        <section>
+          <h3>Precio según dormitorios y baños</h3>
+          <img src="assets/img/03_precio_por_habitaciones_banios.png" alt="Precio por habitaciones y baños">
+          <p class="small">A mayor cantidad de dormitorios/baños, mayor mediana de precio.</p>
+        </section>
+
+        <!-- SLIDE 11: Precio por ubicación -->
+        <section>
+          <h3>El precio depende fuertemente de la ubicación</h3>
+          <img src="assets/img/04_precio_por_ubicacion.png" alt="Precio por ubicación">
+          <p class="small">Diferencias importantes entre estados y entre las principales ciudades.</p>
+        </section>
+
+        <!-- SLIDE 12: Tipos de propiedad -->
+        <section>
+          <h3>Distribución por tipo de propiedad</h3>
+          <img src="assets/img/05_categorias_propiedad.png" alt="Categorías de propiedad">
+          <p class="small">Predominan apartamentos, pero también hay casas, condos y otras categorías.</p>
+        </section>
+
+        <!-- SLIDE 13: Valores faltantes -->
+        <section>
+          <h3>Valores faltantes</h3>
+          <img src="assets/img/06_valores_faltantes.png" alt="Valores faltantes">
+          <p class="small">Destacan <code>address</code>, <code>pets_allowed</code> y <code>amenities</code>. Requieren estrategia de imputación.</p>
+        </section>
+
+        <!-- SLIDE 14: Correlaciones -->
+        <section>
+          <h3>Correlaciones entre variables numéricas</h3>
+          <img src="assets/img/07_correlaciones.png" alt="Correlaciones">
+          <p class="small">La superficie es la variable numérica más correlacionada con el precio.</p>
+        </section>
+
+        <!-- SLIDE 15: Temporal -->
+        <section>
+          <h3>Distribución temporal de los avisos</h3>
+          <img src="assets/img/08_distribucion_temporal.png" alt="Distribución temporal">
+          <p class="small">Los datos corresponden principalmente a 2019. Limitación importante para uso actual.</p>
+        </section>
+
+        <!-- SLIDE 16: Limitaciones -->
+        <section>
+          <h2>Limitaciones del dataset</h2>
+          <div class="left small">
+            <ul>
+              <li><strong>Antigüedad:</strong> datos de 2019; no reflejan inflación ni cambios post-pandemia.</li>
+              <li><strong>Sesgo geográfico:</strong> ciudades grandes y ciertos estados están sobrerrepresentados.</li>
+              <li><strong>Fuentes específicas:</strong> principalmente RentLingo y RentDigs.com.</li>
+              <li><strong>Factores no observados:</strong> estado de conservación, regulaciones locales, temporada.</li>
+              <li><strong>Outliers y faltantes:</strong> requieren tratamiento cuidadoso en el pipeline.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- SLIDE 17: Próximos pasos -->
+        <section>
+          <h2>Próximos pasos (Entrega 2)</h2>
+          <div class="left small">
+            <ol>
+              <li>Limpieza y preparación final (imputación, tratamiento de outliers, encoding).</li>
+              <li>Separación en entrenamiento / validación / test.</li>
+              <li>Baseline: regresión lineal o mediana por ubicación.</li>
+              <li>Modelos: Random Forest, Gradient Boosting (XGBoost/LightGBM).</li>
+              <li>Métricas: MAE, RMSE, MAPE.</li>
+              <li>Análisis de errores e interpretación (SHAP, importancia de features).</li>
+              <li>Discusión de uso real, riesgos y monitoreo.</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- SLIDE 18: Cierre -->
+        <section>
+          <h2>Conclusiones</h2>
+          <div class="left">
+            <ul>
+              <li>El problema es real y el dataset es <strong>adecuado para un prototipo</strong>.</li>
+              <li>Superficie, ubicación y habitaciones son los principales predictores.</li>
+              <li>Hay que comunicar claramente las <strong>limitaciones</strong> antes de usarlo en producción.</li>
+              <li>El modelo debe usarse como <strong>soporte de decisión</strong>, no como precio final.</li>
+            </ul>
+          </div>
+          <p><strong>¿Preguntas?</strong></p>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        transition: 'slide',
+        width: 1280,
+        height: 720,
+        margin: 0.05
+      });
+    </script>
+  </body>
+</html>
